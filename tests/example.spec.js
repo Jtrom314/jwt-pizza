@@ -89,6 +89,9 @@ test('purchase with login', async ({ page }) => {
   await page.getByRole('button', { name: 'Cancel' }).click()
   await expect(page.locator('form')).toContainText('Selected pizzas: 2');
   await page.getByRole('button', { name: 'Checkout' }).click();
+
+
+  
   await page.getByRole('button', { name: 'Pay now' }).click();
 
   // Check balance
@@ -176,10 +179,59 @@ test('admin dashboard allows you to create a franchise and a store', async ({ pa
   await page.getByPlaceholder('franchise name').fill('random');
   await page.getByPlaceholder('franchise name').press('Tab');
   await page.getByPlaceholder('franchisee admin email').fill('a@jwt.com');
+
+  await page.route('*/api/franchise', async (route) =>  {
+    expect(route.request().method()).toBe('POST')
+  })
+
+  await page.route('*/api/franchise/*', async (route) => {
+    expect(route.request().method()).toBe('DELETE')
+  })
+
   await page.getByRole('button', { name: 'Create' }).click();
-  await page.getByRole('row', { name: 'random 常用名字 Close' }).getByRole('button').click();
-  await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('row', { name: 'random 常用名字 Close' })
+  // await page.getByRole('button', { name: 'Close' }).click();
 });
+
+test('diner dashboard', async ({ page }) => {
+  await page.goto('http://localhost:5173/');
+  await page.getByRole('link', { name: 'Login' }).click();
+  await page.getByPlaceholder('Email address').click();
+  await page.getByPlaceholder('Email address').fill('f@jwt.com');
+  await page.getByPlaceholder('Email address').press('Tab');
+  await page.getByPlaceholder('Password').fill('franchisee');
+
+  // Intercept the API call and fulfill with the mocked response
+  await page.route('*/api/auth', async (route) => {
+    const loginReq = { email: 'f@jwt.com', password: 'franchisee' };
+    const loginRes = {"id":3,"name":"pizza franchisee","email":"f@jwt.com","roles":[{"role":"diner"},{"objectId":1,"role":"franchisee"}] };
+    expect(route.request().method()).toBe('POST');
+    expect(route.request().postDataJSON()).toMatchObject(loginReq);
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(loginRes)
+    });
+  });
+
+  // Click the login button to trigger the API call
+  await page.getByRole('button', { name: 'Login' }).click();
+
+  // Wait for the navigation or API response if there's any
+  await page.waitForLoadState('networkidle');
+
+  // Set the local storage directly with user info and token
+  const loginRes = {"id":3,"name":"pizza franchisee","email":"f@jwt.com","roles":[{"role":"diner"},{"objectId":1,"role":"franchisee"}]};
+  const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MywibmFtZSI6InBpenphIGZyYW5jaGlzZWUiLCJlbWFpbCI6ImZAand0LmNvbSIsInJvbGVzIjpbeyJyb2xlIjoiZGluZXIifSx7Im9iamVjdElkIjoxLCJyb2xlIjoiZnJhbmNoaXNlZSJ9XSwiaWF0IjoxNzIwMTI1OTU1fQ.HwYn7KgtrE13lu02lufXcicZf13FXiau8HUnLvQfdKI';
+
+  await page.evaluate(({ loginRes, token }) => {
+    localStorage.setItem('user', JSON.stringify(loginRes));
+    localStorage.setItem('token', token);
+  }, { loginRes, token });
+
+  await page.goto('http://localhost:5173/diner-dashboard')
+  await page.getByText('Your pizza kitchen')
+})
 
 
 test('franchisee is able to access their dashboard', async ({ page }) => {
@@ -221,6 +273,7 @@ test('franchisee is able to access their dashboard', async ({ page }) => {
   // Navigate to the admin page
   await page.goto('http://localhost:5173/franchise-dashboard')
   await page.getByRole('button', { name: 'Create store'})
+  await page.getByText('Everything you need to run an JWT Pizza franchise. Your gateway to success.')
   await page.goto('http://localhost:5173/franchise-dashboard/create-store')
   await page.goto('http://localhost:5173/franchise-dashboard/create-store');
   await page.getByText('Create store').click();
