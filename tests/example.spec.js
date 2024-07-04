@@ -1,6 +1,10 @@
 import { test, expect } from 'playwright-test-coverage';
 
 test('purchase with login', async ({ page }) => {
+  page.on('console', msg => console.log(msg.text()));
+  page.on('response', response => console.log(`${response.status()} ${response.url()}`));
+  page.on('requestfailed', request => console.log(`${request.failure().errorText} ${request.url()}`));
+
   await page.route('*/**/api/menu', async (route) => {
     const menuRes = [
       { id: 1, title: 'Veggie', image: 'pizza1.png', price: 0.0038, description: 'A garden of delight' },
@@ -67,12 +71,14 @@ test('purchase with login', async ({ page }) => {
   // Go to order page
   await page.getByRole('button', { name: 'Order now' }).click();
 
-    // Create order
-    await expect(page.locator('h2')).toContainText('Awesome is a click away');
-    await page.getByRole('combobox').selectOption('1');
-    await page.getByRole('link', { name: 'Image Description Veggie A' }).click();
-    await page.getByRole('link', { name: 'Image Description Pepperoni' }).click();
-    await expect(page.locator('form')).toContainText('Selected pizzas: 2');
+  // Create order
+  await expect(page.locator('h2')).toContainText('Awesome is a click away');
+  // await page.waitForSelector('combobox', { state: 'visible' });
+  // await page.waitForSelector('combobox', { state: 'enabled' });
+  await page.getByRole('combobox').selectOption('1');
+  await page.getByRole('link', { name: 'Image Description Veggie A' }).click();
+  await page.getByRole('link', { name: 'Image Description Pepperoni' }).click();
+  await expect(page.locator('form')).toContainText('Selected pizzas: 2');
 
   await page.getByRole('button', { name: 'Checkout' }).click();
 
@@ -86,12 +92,10 @@ test('purchase with login', async ({ page }) => {
   // Pay
   await expect(page.getByRole('main')).toContainText('Send me those 2 pizzas right now!');
   await expect(page.locator('tbody')).toContainText('Veggie');
-  await page.getByRole('button', { name: 'Cancel' }).click()
+  await page.getByRole('button', { name: 'Cancel' }).click();
   await expect(page.locator('form')).toContainText('Selected pizzas: 2');
   await page.getByRole('button', { name: 'Checkout' }).click();
 
-
-  
   await page.getByRole('button', { name: 'Pay now' }).click();
 
   // Check balance
