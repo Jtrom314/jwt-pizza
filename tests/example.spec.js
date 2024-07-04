@@ -90,3 +90,38 @@ test('purchase with login', async ({ page }) => {
   // Check balance
   await expect(page.getByText('0.008')).toBeVisible();
 });
+
+test('register a new user', async ({ page }) => {
+  await page.route('*/**/api/auth', async (route) => {
+    const userReq = {
+      name: 'user',
+      password: 'a',
+      email: 'a@jwt.org'
+    }
+    const registerRes = {}
+    expect(route.request().method()).toBe('POST');
+    expect(route.request().postDataJSON()).toMatchObject(userReq)
+    await route.fulfill({ json: registerRes });
+  });
+
+  await page.goto('http://localhost:5173/')
+
+  // Go to register page
+  await page.getByRole('link', { name: 'Register' }).click()
+
+  // fill in register infomration
+
+  await page.getByPlaceholder('Full name').click()
+  await page.getByPlaceholder('Full name').fill('user')
+  await page.getByPlaceholder('Full name').press('Tab')
+
+  await page.getByPlaceholder('Email address').click()
+  await page.getByPlaceholder('Email address').fill('a@jwt.org')
+  await page.getByPlaceholder('Email address').press('Tab')
+
+  await page.getByPlaceholder('Password').click()
+  await page.getByPlaceholder('Password').fill('a')
+  await page.getByPlaceholder('Password').press('Tab')
+
+  await page.getByRole('button', { name: 'Register' }).click()
+})
