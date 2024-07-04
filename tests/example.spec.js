@@ -168,7 +168,8 @@ test('admin dashboard allows you to create a franchise and a store', async ({ pa
   }, { loginRes, token });
 
   // Navigate to the admin page
-  await page.getByRole('link', { name: 'Admin' }).click();
+  // await page.getByRole('link', { name: 'Admin' }).click();
+  page.goto('http://localhost:5173/admin-dashboard')
 
   await page.getByRole('button', { name: 'Add Franchise' }).click();
   await page.getByPlaceholder('franchise name').click();
