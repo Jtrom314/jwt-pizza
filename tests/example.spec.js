@@ -126,18 +126,87 @@ test('register a new user', async ({ page }) => {
   await page.getByRole('button', { name: 'Register' }).click()
 })
 
-// test('admin dashboard works correctly', async ({ page }) => {
+
+test('admin dashboard allows you to create a franchise, a store, and close the store and franchise', async ({ page }) => {
+  await page.goto('http://localhost:5173/');
+  await page.getByRole('link', { name: 'Login' }).click();
+  await page.getByPlaceholder('Email address').click();
+  await page.getByPlaceholder('Email address').fill('a@jwt.com');
+  await page.getByPlaceholder('Email address').press('Tab');
+  await page.getByPlaceholder('Password').fill('admin');
+
+  // Intercept the API call and fulfill with the mocked response
+  await page.route('*/api/auth', async (route) => {
+    const loginReq = { email: 'a@jwt.com', password: 'admin' };
+    const loginRes = { id: 1, name: '常用名字', email: 'a@jwt.com', roles: [{ role: 'admin' }] };
+    expect(route.request().method()).toBe('POST');
+    expect(route.request().postDataJSON()).toMatchObject(loginReq);
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(loginRes)
+    });
+  });
+
+  // Click the login button to trigger the API call
+  await page.getByRole('button', { name: 'Login' }).click();
+
+  // Wait for the navigation or API response if there's any
+  await page.waitForLoadState('networkidle');
+
+  // Set the local storage directly with user info and token
+  const loginRes = { id: 1, name: '常用名字', email: 'a@jwt.com', roles: [{ role: 'admin' }] };
+  const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibmFtZSI6IuW4uOeUqOWQjeWtlyIsImVtYWlsIjoiYUBqd3QuY29tIiwicm9sZXMiOlt7InJvbGUiOiJhZG1pbiJ9XSwiaWF0IjoxNzIwMTI0NzcyfQ.yksrEHcYYB1kAlRps_USlVg-ME0HHcozHKcsTn8ibrU';
+
+  await page.evaluate(({ loginRes, token }) => {
+    localStorage.setItem('user', JSON.stringify(loginRes));
+    localStorage.setItem('token', token);
+  }, { loginRes, token });
+
+  // Navigate to the admin page
+  await page.getByRole('link', { name: 'Admin' }).click();
+
+  await page.getByRole('button', { name: 'Add Franchise' }).click();
+  await page.getByPlaceholder('franchise name').click();
+  await page.getByPlaceholder('franchise name').fill('random');
+  await page.getByPlaceholder('franchise name').press('Tab');
+  await page.getByPlaceholder('franchisee admin email').fill('a@jwt.com');
+  await page.getByRole('button', { name: 'Create' }).click();
+  await page.getByRole('row', { name: 'random 常用名字 Close' }).getByRole('button').click();
+  await page.getByRole('button', { name: 'Close' }).click();
+});
+
+
+// test('admin dashboard allows you to create a franchise', async({ page }) => {
+//   await page.goto('http://localhost:5173/');
+//   await page.getByRole('link', { name: 'Login' }).click();
+//   await page.getByPlaceholder('Email address').click();
+//   await page.getByPlaceholder('Email address').fill('a@jwt.com');
+//   await page.getByPlaceholder('Email address').press('Tab');
+//   await page.getByPlaceholder('Password').fill('admin');
 
 //   await page.route('*/**/api/auth', async (route) => {
-//     const loginReq = { email: 'd@jwt.com', password: 'a' };
-//     const loginRes = { id: 3, name: 'Kai Chen', email: 'd@jwt.com', roles: [{ role: 'admin' }] };
+//     const loginReq = { email: 'a@jwt.com', password: 'admin' };
+//     const loginRes = { id: 3, name: '常用名字', email: 'a@jwt.com', roles: [{ role: 'admin' }] };
 //     expect(route.request().method()).toBe('PUT');
 //     expect(route.request().postDataJSON()).toMatchObject(loginReq);
 //     await route.fulfill({ json: loginRes });
 //   });
 
-//   await page.goto('http://localhost:5173')
+//   await page.getByRole('button', { name: 'Login' }).click();
+
+//   await page.getByRole('link', { name: 'Admin' }).click();
+//   await page.getByRole('button', { name: 'Add Franchise' }).click();
+//   await page.getByPlaceholder('franchise name').click();
+//   await page.getByPlaceholder('franchise name').fill('random');
+//   await page.getByPlaceholder('franchise name').press('Tab');
+//   await page.getByPlaceholder('franchisee admin email').fill('a@jwt.com');
+//   await page.getByRole('button', { name: 'Create' }).click();
+//   await page.getByRole('row', { name: 'random 常用名字 Close' }).getByRole('button').click();
+//   await page.getByRole('button', { name: 'Close' }).click();
 // })
+
+
 
 test('docs work correctly', async ({ page }) => {
   await page.route('*/**/api/docs', async (route) => {
@@ -203,4 +272,10 @@ test('logout page functions properly', async ({ page }) => {
   })
 
   await page.goto('http://localhost:5173/logout')
+})
+
+test('not found page loads correctly', async ({ page }) => {
+  await page.goto('http://localhost:5173/oops')
+
+  await page.getByText('Oops')
 })
