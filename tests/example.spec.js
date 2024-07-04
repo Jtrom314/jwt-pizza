@@ -67,12 +67,13 @@ test('purchase with login', async ({ page }) => {
   // Go to order page
   await page.getByRole('button', { name: 'Order now' }).click();
 
-  // Create order
-  await expect(page.locator('h2')).toContainText('Awesome is a click away');
-  await page.getByRole('combobox').selectOption('1');
-  await page.getByRole('link', { name: 'Image Description Veggie A' }).click();
-  await page.getByRole('link', { name: 'Image Description Pepperoni' }).click();
-  await expect(page.locator('form')).toContainText('Selected pizzas: 2');
+    // Create order
+    await expect(page.locator('h2')).toContainText('Awesome is a click away');
+    await page.getByRole('combobox').selectOption('1');
+    await page.getByRole('link', { name: 'Image Description Veggie A' }).click();
+    await page.getByRole('link', { name: 'Image Description Pepperoni' }).click();
+    await expect(page.locator('form')).toContainText('Selected pizzas: 2');
+
   await page.getByRole('button', { name: 'Checkout' }).click();
 
   // Login
@@ -85,6 +86,9 @@ test('purchase with login', async ({ page }) => {
   // Pay
   await expect(page.getByRole('main')).toContainText('Send me those 2 pizzas right now!');
   await expect(page.locator('tbody')).toContainText('Veggie');
+  await page.getByRole('button', { name: 'Cancel' }).click()
+  await expect(page.locator('form')).toContainText('Selected pizzas: 2');
+  await page.getByRole('button', { name: 'Checkout' }).click();
   await page.getByRole('button', { name: 'Pay now' }).click();
 
   // Check balance
@@ -127,7 +131,7 @@ test('register a new user', async ({ page }) => {
 })
 
 
-test('admin dashboard allows you to create a franchise, a store, and close the store and franchise', async ({ page }) => {
+test('admin dashboard allows you to create a franchise and a store', async ({ page }) => {
   await page.goto('http://localhost:5173/');
   await page.getByRole('link', { name: 'Login' }).click();
   await page.getByPlaceholder('Email address').click();
@@ -177,34 +181,53 @@ test('admin dashboard allows you to create a franchise, a store, and close the s
 });
 
 
-// test('admin dashboard allows you to create a franchise', async({ page }) => {
-//   await page.goto('http://localhost:5173/');
-//   await page.getByRole('link', { name: 'Login' }).click();
-//   await page.getByPlaceholder('Email address').click();
-//   await page.getByPlaceholder('Email address').fill('a@jwt.com');
-//   await page.getByPlaceholder('Email address').press('Tab');
-//   await page.getByPlaceholder('Password').fill('admin');
+test('franchisee is able to access their dashboard', async ({ page }) => {
+  await page.goto('http://localhost:5173/');
+  await page.getByRole('link', { name: 'Login' }).click();
+  await page.getByPlaceholder('Email address').click();
+  await page.getByPlaceholder('Email address').fill('f@jwt.com');
+  await page.getByPlaceholder('Email address').press('Tab');
+  await page.getByPlaceholder('Password').fill('franchisee');
 
-//   await page.route('*/**/api/auth', async (route) => {
-//     const loginReq = { email: 'a@jwt.com', password: 'admin' };
-//     const loginRes = { id: 3, name: '常用名字', email: 'a@jwt.com', roles: [{ role: 'admin' }] };
-//     expect(route.request().method()).toBe('PUT');
-//     expect(route.request().postDataJSON()).toMatchObject(loginReq);
-//     await route.fulfill({ json: loginRes });
-//   });
+  // Intercept the API call and fulfill with the mocked response
+  await page.route('*/api/auth', async (route) => {
+    const loginReq = { email: 'f@jwt.com', password: 'franchisee' };
+    const loginRes = {"id":3,"name":"pizza franchisee","email":"f@jwt.com","roles":[{"role":"diner"},{"objectId":1,"role":"franchisee"}] };
+    expect(route.request().method()).toBe('POST');
+    expect(route.request().postDataJSON()).toMatchObject(loginReq);
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(loginRes)
+    });
+  });
 
-//   await page.getByRole('button', { name: 'Login' }).click();
+  // Click the login button to trigger the API call
+  await page.getByRole('button', { name: 'Login' }).click();
 
-//   await page.getByRole('link', { name: 'Admin' }).click();
-//   await page.getByRole('button', { name: 'Add Franchise' }).click();
-//   await page.getByPlaceholder('franchise name').click();
-//   await page.getByPlaceholder('franchise name').fill('random');
-//   await page.getByPlaceholder('franchise name').press('Tab');
-//   await page.getByPlaceholder('franchisee admin email').fill('a@jwt.com');
-//   await page.getByRole('button', { name: 'Create' }).click();
-//   await page.getByRole('row', { name: 'random 常用名字 Close' }).getByRole('button').click();
-//   await page.getByRole('button', { name: 'Close' }).click();
-// })
+  // Wait for the navigation or API response if there's any
+  await page.waitForLoadState('networkidle');
+
+  // Set the local storage directly with user info and token
+  const loginRes = {"id":3,"name":"pizza franchisee","email":"f@jwt.com","roles":[{"role":"diner"},{"objectId":1,"role":"franchisee"}]};
+  const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MywibmFtZSI6InBpenphIGZyYW5jaGlzZWUiLCJlbWFpbCI6ImZAand0LmNvbSIsInJvbGVzIjpbeyJyb2xlIjoiZGluZXIifSx7Im9iamVjdElkIjoxLCJyb2xlIjoiZnJhbmNoaXNlZSJ9XSwiaWF0IjoxNzIwMTI1OTU1fQ.HwYn7KgtrE13lu02lufXcicZf13FXiau8HUnLvQfdKI';
+
+  await page.evaluate(({ loginRes, token }) => {
+    localStorage.setItem('user', JSON.stringify(loginRes));
+    localStorage.setItem('token', token);
+  }, { loginRes, token });
+
+  // Navigate to the admin page
+  await page.goto('http://localhost:5173/franchise-dashboard')
+  await page.getByRole('button', { name: 'Create store'})
+  await page.goto('http://localhost:5173/franchise-dashboard/create-store')
+  await page.goto('http://localhost:5173/franchise-dashboard/create-store');
+  await page.getByText('Create store').click();
+  await page.getByPlaceholder('store name').click();
+  await page.getByPlaceholder('store name').fill('testStore');
+
+  await page.getByRole('button', { name: 'Create' }).click();
+})
 
 
 
