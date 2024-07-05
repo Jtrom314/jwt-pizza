@@ -73,8 +73,6 @@ test('purchase with login', async ({ page }) => {
 
   // Create order
   await expect(page.locator('h2')).toContainText('Awesome is a click away');
-  // await page.waitForSelector('combobox', { state: 'visible' });
-  // await page.waitForSelector('combobox', { state: 'enabled' });
   await page.getByRole('combobox').selectOption('1');
   await page.getByRole('link', { name: 'Image Description Veggie A' }).click();
   await page.getByRole('link', { name: 'Image Description Pepperoni' }).click();
