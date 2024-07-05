@@ -259,7 +259,7 @@ test('franchisee is able to access their dashboard', async ({ page }) => {
   // Intercept the API call and fulfill with the mocked response
   await page.route('*/api/auth', async (route) => {
     const loginReq = { email: 'f@jwt.com', password: 'franchisee' };
-    const loginRes = {"id":3,"name":"pizza franchisee","email":"f@jwt.com","roles":[{"role":"diner"},{"objectId":1,"role":"franchisee"}] };
+    const loginRes = {"id":3,"name":"pizza franchisee","email":"f@jwt.com","roles":[{"role":"franchisee"}] };
     expect(route.request().method()).toBe('POST');
     expect(route.request().postDataJSON()).toMatchObject(loginReq);
     await route.fulfill({
@@ -269,6 +269,31 @@ test('franchisee is able to access their dashboard', async ({ page }) => {
     });
   });
 
+  await page.route('*/**/api/franchise/3', async (route) => {
+    const franchiseRes =[
+      {
+        "id": 2,
+        "name": "pizzaPocket",
+        "admins": [
+          {
+            "id": 4,
+            "name": "pizza franchisee",
+            "email": "f@jwt.com"
+          }
+        ],
+        "stores": [
+          {
+            "id": 4,
+            "name": "SLC",
+            "totalRevenue": 0
+          }
+        ]
+      }
+    ];
+    expect(route.request().method()).toBe('GET');
+    await route.fulfill({ json: franchiseRes });
+  });
+
   // Click the login button to trigger the API call
   await page.getByRole('button', { name: 'Login' }).click();
 
@@ -276,7 +301,7 @@ test('franchisee is able to access their dashboard', async ({ page }) => {
   await page.waitForLoadState('networkidle');
 
   // Set the local storage directly with user info and token
-  const loginRes = {"id":3,"name":"pizza franchisee","email":"f@jwt.com","roles":[{"role":"diner"},{"objectId":1,"role":"franchisee"}]};
+  const loginRes = {"id":3,"name":"pizza franchisee","email":"f@jwt.com","roles":[{"role":"franchisee"}]};
   const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MywibmFtZSI6InBpenphIGZyYW5jaGlzZWUiLCJlbWFpbCI6ImZAand0LmNvbSIsInJvbGVzIjpbeyJyb2xlIjoiZGluZXIifSx7Im9iamVjdElkIjoxLCJyb2xlIjoiZnJhbmNoaXNlZSJ9XSwiaWF0IjoxNzIwMTI1OTU1fQ.HwYn7KgtrE13lu02lufXcicZf13FXiau8HUnLvQfdKI';
 
   await page.evaluate(({ loginRes, token }) => {
@@ -295,6 +320,11 @@ test('franchisee is able to access their dashboard', async ({ page }) => {
   await page.getByPlaceholder('store name').fill('testStore');
 
   await page.getByRole('button', { name: 'Create' }).click();
+  await page.goto('http://localhost:5173/franchise-dashboard/close-store')
+  await page.getByText('Sorry to see you go')
+
+  await page.goto('http://localhost:5173/franchise-dashboard/close-franchise')
+  await page.getByText('Sorry to see you go')
 })
 
 
