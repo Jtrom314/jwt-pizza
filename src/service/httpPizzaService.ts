@@ -69,7 +69,6 @@ class HttpPizzaService implements PizzaService {
   async getUser(): Promise<User | null> {
     return new Promise((resolve) => {
       let user: User | null = JSON.parse(localStorage.getItem('user') || 'null');
-
       return resolve(user);
     });
   }
