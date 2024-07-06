@@ -225,16 +225,23 @@ test('diner dashboard', async ({ page }) => {
   await page.getByPlaceholder('Password').fill('franchisee');
 
   // Intercept the API call and fulfill with the mocked response
-  await page.route('*/api/auth', async (route) => {
+  await page.route('*/**/api/auth', async (route) => {
     const loginReq = { email: 'f@jwt.com', password: 'franchisee' };
-    const loginRes = {"id":3,"name":"pizza franchisee","email":"f@jwt.com","roles":[{"role":"diner"},{"objectId":1,"role":"franchisee"}] };
-    expect(route.request().method()).toBe('POST');
+    const loginRes = {"id":3,"name":"pizza franchisee","email":"f@jwt.com","roles":[{"role":"franchisee"}] };
+    expect(route.request().method()).toBe('PUT');
     expect(route.request().postDataJSON()).toMatchObject(loginReq);
+    const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MywibmFtZSI6InBpenphIGZyYW5jaGlzZWUiLCJlbWFpbCI6ImZAand0LmNvbSIsInJvbGVzIjpbeyJyb2xlIjoiZGluZXIifSx7Im9iamVjdElkIjoxLCJyb2xlIjoiZnJhbmNoaXNlZSJ9XSwiaWF0IjoxNzIwMTI1OTU1fQ.HwYn7KgtrE13lu02lufXcicZf13FXiau8HUnLvQfdKI';
+    const user = new User(loginRes.id.toString(), loginRes.name, loginRes.email, loginRes.password, loginRes.roles)
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify(loginRes)
     });
+    await page.evaluate(({ user, token }) => {
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('token', token);
+    }, { user, token });
+    await page.goto('http://localhost:5173')
   });
 
   // Click the login button to trigger the API call
@@ -243,16 +250,7 @@ test('diner dashboard', async ({ page }) => {
   // Wait for the navigation or API response if there's any
   await page.waitForLoadState('networkidle');
 
-  // Set the local storage directly with user info and token
-  const loginRes = {"id":3,"name":"pizza franchisee","email":"f@jwt.com","roles":[{"role":"diner"},{"objectId":1,"role":"franchisee"}]};
-  const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MywibmFtZSI6InBpenphIGZyYW5jaGlzZWUiLCJlbWFpbCI6ImZAand0LmNvbSIsInJvbGVzIjpbeyJyb2xlIjoiZGluZXIifSx7Im9iamVjdElkIjoxLCJyb2xlIjoiZnJhbmNoaXNlZSJ9XSwiaWF0IjoxNzIwMTI1OTU1fQ.HwYn7KgtrE13lu02lufXcicZf13FXiau8HUnLvQfdKI';
-
-  await page.evaluate(({ loginRes, token }) => {
-    localStorage.setItem('user', JSON.stringify(loginRes));
-    localStorage.setItem('token', token);
-  }, { loginRes, token });
-
-  await page.route('*/api/order', async (route) => {
+  await page.route('*/**/api/order', async (route) => {
     const res = {
       "dinerId": 4,
       "orders": [
@@ -276,8 +274,9 @@ test('diner dashboard', async ({ page }) => {
     expect(route.request().method()).toBe('GET')
     await route.fulfill({ json: res });
   })
-
+  
   await page.goto('http://localhost:5173/diner-dashboard')
+  await page.waitForLoadState('networkidle');
   await page.getByText('Here is your history of all the good times.')
   await page.getByText('1')
 })
