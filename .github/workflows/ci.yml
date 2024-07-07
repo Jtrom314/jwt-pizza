@@ -17,7 +17,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'    
+          node-version: '20.x'
       - name: Cache Node modules
         uses: actions/cache@v3
         with:
@@ -46,7 +46,6 @@ jobs:
           git add .
           git commit -m "Update coverage and version [skip ci]" || echo "No changes to commit"
           git push
-
       - name: Create OIDC token to AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
