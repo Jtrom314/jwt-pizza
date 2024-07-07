@@ -6,6 +6,7 @@ on:
       - main
   workflow_dispatch:
 permissions:
+  content: write
   id-token: write
 
 jobs:
@@ -36,6 +37,7 @@ jobs:
         run: npm run test:coverage
       - name: Update coverage and version
         run: |
+          printf '{"version": "%s" }' $(date +'%Y%m%d.%H%M%S') > src/version.json
           coverage_pct=$(jq '.total.statements.pct' coverage/coverage-summary.json)
           color=$(echo "$coverage_pct < 80" | bc -l | awk '{if ($1) print "yellow"; else print "green"}')
           sed -i "s/^Coverage: .*/Coverage: $coverage_pct %/" README.md
