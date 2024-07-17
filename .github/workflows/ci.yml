@@ -9,8 +9,10 @@ permissions:
   contents: write
   id-token: write
 
+outputs:
+  version: ${{ step.set_version.outputs.version }}
 jobs:
-  deploy-s3:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -35,9 +37,13 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run tests
         run: npm run test:coverage
+      - name: set version
+        id: set_version
+        run: |
+          echo "version = $(date +'%Y%m%d.%H%M%S')" >> "$GITHUB_OUTPUT"
       - name: Update coverage and version
         run: |
-          printf '{"version": "%s" }' $(date +'%Y%m%d.%H%M%S') > src/version.json
+          printf '{"version": "%s" }' ${{steps.set_version.outputs.version}} > src/version.json
           coverage_pct=$(jq '.total.statements.pct' coverage/coverage-summary.json)
           color=$(echo "$coverage_pct < 80" | bc -l | awk '{if ($1) print "yellow"; else print "green"}')
           sed -i "s/^Coverage: .*/Coverage: $coverage_pct %/" README.md
@@ -47,6 +53,9 @@ jobs:
           git add .
           git commit -m "Update coverage and version [skip ci]" || echo "No changes to commit"
           git push
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
       - name: Create OIDC token to AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -57,3 +66,22 @@ jobs:
         run: |
           aws s3 cp dist s3://${{ secrets.APP_BUCKET }} --recursive
           aws cloudfront create-invalidation --distribution-id ${{ secrets.DISTRIBUTION_ID }} --paths "/*"
+  release:
+    needs:
+      - build
+      - deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        env:
+          version: ${{needs.build.outputs.version}}
+        with:
+          tag: version-${{ env.version }}
+          name: Version ${{ env.version }}
+          body: |
+            ## 🚀 Changes
+
+            ${{ github.event.head_commit.message }}
+
+            **commit**: ${{ github.sha }}
