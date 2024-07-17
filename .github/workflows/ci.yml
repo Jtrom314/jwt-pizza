@@ -58,11 +58,14 @@ jobs:
           git add .
           git commit -m "Update coverage and version [skip ci]" || echo "No changes to commit"
           git push
+
   deploy:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
     needs: build
+    env:
+      version: ${{needs.build.output.version}}
     environment:
       name: production
       url: https://pizza.hivecode.net
@@ -95,7 +98,7 @@ jobs:
         run: ls -l dist
       - name: Push to AWS S3
         run: |
-          aws s3 cp dist s3://${{ secrets.APP_BUCKET }} --recursive
+          aws s3 cp dist s3://${{ secrets.APP_BUCKET }}/$version --recursive
           aws cloudfront create-invalidation --distribution-id ${{ secrets.DISTRIBUTION_ID }} --paths "/*"
 
   release:
