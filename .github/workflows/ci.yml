@@ -48,7 +48,7 @@ jobs:
           echo "::set-output name=version::$version"
       - name: Update coverage and version
         run: |
-          printf '{"version": "%s" }' ${{ steps.set_version.outputs.version }} > src/version.json
+          printf '{"version": "%s" }' "${{ steps.set_version.outputs.version }}" > src/version.json
           coverage_pct=$(jq '.total.statements.pct' coverage/coverage-summary.json)
           color=$(echo "$coverage_pct < 80" | bc -l | awk '{if ($1) print "yellow"; else print "green"}')
           sed -i "s/^Coverage: .*/Coverage: $coverage_pct %/" README.md
@@ -65,7 +65,7 @@ jobs:
       id-token: write
     needs: build
     env:
-      version: ${{needs.build.output.version}}
+      version: ${{ needs.build.outputs.version }}
     environment:
       name: production
       url: https://pizza.hivecode.net
@@ -98,8 +98,9 @@ jobs:
         run: ls -l dist
       - name: Push to AWS S3
         run: |
-          aws s3 cp dist s3://${{ secrets.APP_BUCKET }}/$version --recursive
+          aws s3 cp dist s3://${{ secrets.APP_BUCKET }}/${{ env.version }} --recursive
           aws cloudfront create-invalidation --distribution-id ${{ secrets.DISTRIBUTION_ID }} --paths "/*"
+
   release:
     needs:
       - build
