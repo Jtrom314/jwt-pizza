@@ -43,8 +43,9 @@ jobs:
       - name: Set version
         id: set_version
         run: |
-          echo "version=$(date +'%Y%m%d.%H%M%S')" >> $GITHUB_ENV
-          echo "version=${{ steps.set_version.outputs.version }}"
+          version=$(date +'%Y%m%d.%H%M%S')
+          echo "version=$version" >> $GITHUB_ENV
+          echo "::set-output name=version::$version"
       - name: Update coverage and version
         run: |
           printf '{"version": "%s" }' ${{ steps.set_version.outputs.version }} > src/version.json
@@ -57,6 +58,7 @@ jobs:
           git add .
           git commit -m "Update coverage and version [skip ci]" || echo "No changes to commit"
           git push
+
   deploy:
     runs-on: ubuntu-latest
     needs: build
@@ -91,6 +93,7 @@ jobs:
         run: |
           aws s3 cp dist s3://${{ secrets.APP_BUCKET }} --recursive
           aws cloudfront create-invalidation --distribution-id ${{ secrets.DISTRIBUTION_ID }} --paths "/*"
+
   release:
     needs:
       - build
