@@ -58,7 +58,6 @@ jobs:
           git add .
           git commit -m "Update coverage and version [skip ci]" || echo "No changes to commit"
           git push
-
   deploy:
     runs-on: ubuntu-latest
     permissions:
