@@ -61,7 +61,12 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     needs: build
+    environment:
+      name: production
+      url: https://pizza.hivecode.net
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
