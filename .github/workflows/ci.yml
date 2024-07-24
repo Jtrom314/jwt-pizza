@@ -64,7 +64,7 @@ jobs:
       name: staging
       url: https://stage-pizza.hivecode.net
     steps:
-    
+
       - name: Create OIDC token to AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -103,6 +103,7 @@ jobs:
     env:
       version: ${{needs.build.outputs.version}}
     steps:
+    
       - name: Create staging release
         uses: ncipollo/release-action@v1
         with:
