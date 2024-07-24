@@ -64,6 +64,7 @@ jobs:
       name: staging
       url: https://stage-pizza.hivecode.net
     steps:
+    
       - name: Create OIDC token to AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
