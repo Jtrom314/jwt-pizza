@@ -11,6 +11,7 @@ jobs:
     outputs:
       version: ${{ steps.set_version.outputs.version }}
     steps:
+    
       - name: Checkout repo
         uses: actions/checkout@v4
 
@@ -103,7 +104,7 @@ jobs:
     env:
       version: ${{needs.build.outputs.version}}
     steps:
-    
+
       - name: Create staging release
         uses: ncipollo/release-action@v1
         with:
