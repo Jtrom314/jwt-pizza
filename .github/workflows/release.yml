@@ -19,7 +19,7 @@ jobs:
       version: ${{ github.event.inputs.version }}
     environment:
       name: production
-      url: https://pizza.hivecode.net
+      url: https://pizza.hexcodes.net
     steps:
       - name: Create OIDC token to AWS
         uses: aws-actions/configure-aws-credentials@v4

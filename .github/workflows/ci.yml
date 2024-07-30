@@ -66,7 +66,7 @@ jobs:
       version: ${{needs.build.outputs.version}}
     environment:
       name: staging
-      url: https://stage-pizza.hivecode.net
+      url: https://stage-pizza.hexcodes.net
     steps:
     
       - name: Create OIDC token to AWS
@@ -84,7 +84,7 @@ jobs:
 
       - name: Push to AWS S3
         run: |
-          aws s3 cp dist s3://pizza.hivecode.net/$version --recursive
+          aws s3 cp dist s3://pizza.hexcodes.net/$version --recursive
 
       - name: Update the cloudfront distribution
         run: |
