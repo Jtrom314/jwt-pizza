@@ -104,7 +104,6 @@ jobs:
     env:
       version: ${{needs.build.outputs.version}}
     steps:
-
       - name: Create staging release
         uses: ncipollo/release-action@v1
         with:
