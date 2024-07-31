@@ -1,12 +1,13 @@
 name: Deploy
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
-permissions:
-  id-token: write
+    inputs:
+      version:
+        description: 'Version to release'
+        required: true
+      description:
+        required: true
 
 jobs:
   deploy-s3:
